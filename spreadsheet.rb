@@ -7,12 +7,16 @@ Bundler.require
 
 session = GoogleDrive::Session.from_service_account_key("client_secrets.json")
 
-file = session.file_by_title("Congress")
-file.export_as_file("congress.csv")
+print "Enter file name by title: "
+title = gets.chomp
+file = session.file_by_title(title)
+print "Enter file name to save as: "
+save_as = gets.chomp
+file.export_as_file(save_as)
 
-csv = 'congress.csv'
+csv = save_as
 text = File.read(csv)
 new = text.gsub('Young', 'REPLACED')
 File.write(csv, new)
 
-file.update_from_file('congress.csv')
+file.update_from_file(save_as)
