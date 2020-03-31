@@ -5,9 +5,11 @@ require 'csv'
 
 Bundler.require
 
-print "Enter secrets for GoogleDrive session: "
-secrets_file = gets.chomp
-session = GoogleDrive::Session.from_service_account_key("#{secrets_file}")
+# print "Enter secrets for GoogleDrive session: "
+# secrets_file = gets.chomp
+# session = GoogleDrive::Session.from_service_account_key("#{secrets_file}")
+
+session = GoogleDrive::Session.from_config('config.json')
 
 print "Enter file name by title: "
 title = gets.chomp
