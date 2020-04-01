@@ -15,7 +15,7 @@ Steps:
 6. Choose "Other" for "Application type".
 7. Click "Create" and take note of the generated client ID and client secret.
 8. copy and paste client_id and client_secrets to config.json file
-9. Run in terminal command: `ruby spreadsheed.rb`
+9. Run in terminal command: `ruby script/spreadsheed.rb`
 10. Follow the steps
 
 NOTE: For filename you need to enter .csv for Sheets or .txt for Doc
