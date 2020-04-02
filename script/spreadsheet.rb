@@ -1,49 +1,52 @@
-# frozen_string_literal: true
-
+require "google/apis/docs_v1"
+require "googleauth"
+require "googleauth/stores/file_token_store"
+require "fileutils"
 require 'bundler'
-require 'csv'
-require 'fileutils'
-
 Bundler.require
 
-def google_session
-  GoogleDrive::Session.from_config('script/config.json')
+OOB_URI = "urn:ietf:wg:oauth:2.0:oob".freeze
+APPLICATION_NAME = "Google Docs API Ruby Quickstart".freeze
+CREDENTIALS_PATH = "script/credentials.json".freeze
+TOKEN_PATH = "token.yaml".freeze
+SCOPE = Google::Apis::DocsV1::AUTH_DRIVE
+
+def authorize
+  client_id = Google::Auth::ClientId.from_file CREDENTIALS_PATH
+  token_store = Google::Auth::Stores::FileTokenStore.new file: TOKEN_PATH
+  authorizer = Google::Auth::UserAuthorizer.new client_id, SCOPE, token_store
+  user_id = "default"
+  credentials = authorizer.get_credentials user_id
+  if credentials.nil?
+    url = authorizer.get_authorization_url base_url: OOB_URI
+    puts "Open the following URL in the browser and enter the " \
+         "resulting code after authorization:\n" + url
+    code = gets
+    credentials = authorizer.get_and_store_credentials_from_code(
+        user_id: user_id,
+        code: code,
+        base_url: OOB_URI
+    )
+  end
+  credentials
 end
 
-def take_file_name
-  print "Enter file name by title: "
-  @title = gets.chomp
-  @file = google_session.file_by_name(@title)
-end
+service = Google::Apis::DocsV1::DocsService.new
+service.client_options.application_name = APPLICATION_NAME
+service.authorization = authorize
 
-def export_as(format)
-  @file.export_as_file("files/#{@title}/#{@title}.#{format}")
-end
+print "Google document id:\n"
 
-def save_file_as
-  FileUtils.mkdir_p "files/#{@title}"
-  print "If you want to export Google Sheets please enter '1' otherwise leave empty\n"
-  csv = gets.chomp
-  (csv != '1') ? @format = 'txt' : @format = 'csv'
-  export_as @format
-end
+document_id = gets.chomp
+service.get_document document_id
 
-def replace_text
-  text = File.read("files/#{@title}/#{@title}.#{@format}")
-  print "What text you want to replace: "
-  to_replace = gets.chomp
-  print "To what text you want to replace it: "
-  replaced = gets.chomp
-  @new_text = text.gsub(to_replace, replaced)
-end
+print "replace text:\n"
+to_replace = gets.chomp
+print "replace to:\n"
+replaced = gets.chomp
+text1 = Google::Apis::DocsV1::SubstringMatchCriteria.new(text: "#{to_replace}")
+req1 = Google::Apis::DocsV1::ReplaceAllTextRequest.new(contains_text: text1, replace_text: "#{replaced}")
 
-def save_new_file
-  File.write("files/#{@title}/#{@title}.#{@format}", @new_text)
-  @file.update_from_file("files/#{@title}/#{@title}.#{@format}")
-end
-
-google_session
-take_file_name
-save_file_as
-replace_text
-save_new_file
+replacement_requests = [Google::Apis::DocsV1::Request.new(replace_all_text: req1)]
+batch_request = Google::Apis::DocsV1::BatchUpdateDocumentRequest.new(requests: replacement_requests)
+service.batch_update_document(document_id, batch_request)
