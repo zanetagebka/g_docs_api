@@ -46,14 +46,16 @@ drive = Google::Apis::DriveV3::File.new
 ### Main Script Part
 print "Enter Your Google document id:\n"
 document_id = gets.chomp
-service.get_document document_id
+file = session.get_file(document_id)
 
-copied = session.copy_file("#{document_id}")
+copied_file = session.copy_file(file.id)
 
 ###CREATION OF FOLDER
-drive.name = copied.name
+drive.name = copied_file.name
 drive.mime_type = "application/vnd.google-apps.folder"
 folder = session.create_file(drive, fields: 'id')
+
+new_file = session.update_file(copied_file.id, add_parents: folder.id, fields: 'id, parents')
 
 ###UPDATE OF TEXT FROM DOC
 print "What text you want to replace:\n"
@@ -65,4 +67,4 @@ text = Google::Apis::DocsV1::SubstringMatchCriteria.new(text: to_replace.to_s)
 request = Google::Apis::DocsV1::ReplaceAllTextRequest.new(contains_text: text, replace_text: replaced.to_s)
 replacement_requests = [Google::Apis::DocsV1::Request.new(replace_all_text: request)]
 batch_request = Google::Apis::DocsV1::BatchUpdateDocumentRequest.new(requests: replacement_requests)
-service.batch_update_document(copied.id, batch_request)
+service.batch_update_document(new_file.id, batch_request)
