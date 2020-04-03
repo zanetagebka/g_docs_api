@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require 'google/apis/docs_v1'
-require 'google/apis/cloudresourcemanager_v2'
 require 'googleauth'
 require 'googleauth/stores/file_token_store'
 require 'fileutils'
@@ -35,7 +34,6 @@ def authorize
 end
 
 service = Google::Apis::DocsV1::DocsService.new
-service.client_options.application_name = APPLICATION_NAME
 service.authorization = authorize
 
 session = Google::Apis::DriveV3::DriveService.new
@@ -47,14 +45,14 @@ drive = Google::Apis::DriveV3::File.new
 print "Enter Your Google document id:\n"
 document_id = gets.chomp
 file = session.get_file(document_id)
-
 copied_file = session.copy_file(file.id)
 
 ###CREATION OF FOLDER
-drive.name = copied_file.name
+drive.name = copied_file.name.delete_prefix("Copy of ")
 drive.mime_type = "application/vnd.google-apps.folder"
 folder = session.create_file(drive, fields: 'id')
 
+###UPDATE OF COPIED FILE
 new_file = session.update_file(copied_file.id, add_parents: folder.id, fields: 'id, parents')
 
 ###UPDATE OF TEXT FROM DOC
